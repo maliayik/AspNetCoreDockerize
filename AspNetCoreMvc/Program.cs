@@ -1,8 +1,12 @@
+using Microsoft.Extensions.FileProviders;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+//projemizde kaydedilen  resimlerin eriþimini saðlamak için
+builder.Services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Directory.GetCurrentDirectory()));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
