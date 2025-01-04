@@ -1,16 +1,20 @@
-#Seçtiðimiz image içerisind .Net CLI barýndýrmasý gerektiðinden .Net Core SDK image'ýný kullanýyoruz.
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+#1.Image (Uygulamayý publish eden image)
+FROM mcr.microsoft.com/dotnet/sdk:8.0 as build
 WORKDIR /app
-#Ýlk nokta dockerfile'ýn bulunduðu dizini temsil eder. Ýkinci nokta ise image içerisindeki çalýþma dizinini temsil eder.
+#Build aþamasýnda sadece csproj dosyalarýný alýyoruz ve restore iþlemi yapýyoruz
+#Bu iþlemi yapmamýzýn sebebi herhangi bir dosya deðiþtiðinde sadece o dosyanýn build iþlemi yapýlmasýný saðlamak
+COPY *.csproj .
+RUN dotnet restore 
 COPY . . 
-#publish iþlemi öncesinde projenin baðýmlýlýklarýný restore ediyoruz.
-RUN dotnet restore AspNetCoreMvc.csproj 
-#AspNetCoreMvc.csprojemizi release modunda out klasörüne publish ediyoruz.
 RUN dotnet publish AspNetCoreMvc.csproj -c Release -o out 
-#Çalýþma dizinimizi out klasörü olarak belirliyoruz.
-WORKDIR out 
-#Uygulamamýz ayaða kalktýðýnda default olarak localhost:5000 adresinde çalýþacaktýr.Bu yüzden dýþarýdan eriþim saðlayabilmek için port 4500'i environment olarak belirttik.
-#Uygulamamýzýn hangi portta çalýþacaðýný belirtiyoruz.
+
+#2. Image (Uygulamayý çalýþtýran image)
+#publish iþleminden sonra daha düþük boyutlu olan runtime imagemizi alýyoruz
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+#Copy iþlemi yapýlýrken build aþamasýnda oluþturulan out klasöründeki dosyalarý alýyoruz ve /app klasörüne kopyalýyoruz
+COPY --from=build /app/out . 
 ENV ASPNETCORE_URLS="http://*:4500" 
 ENTRYPOINT ["dotnet", "AspNetCoreMvc.dll"]
 
